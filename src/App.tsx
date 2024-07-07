@@ -118,6 +118,47 @@ const UploadImage = () => {
     }));
   };
 
+  const getExpiryClass = (expiryDate: string) => {
+    const today = new Date();
+    const oneMonthLater = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      today.getDate()
+    );
+    const expiry = new Date(expiryDate);
+
+    if (expiry < today) {
+      return "text-red-500"; // Vermelho para itens vencidos
+    } else if (expiry <= oneMonthLater) {
+      return "text-orange-500"; // Laranjado para itens próximos do vencimento
+    }
+    return "text-black"; // Preto para itens longe do vencimento
+  };
+
+  const getExpiredItems = () => {
+    const today = new Date();
+    return images
+      .filter((image) => new Date(image.metadata.expiry) < today)
+      .map((image) => image.metadata.title)
+      .join(", ");
+  };
+
+  const getItemsAboutToExpire = () => {
+    const today = new Date();
+    const oneMonthLater = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      today.getDate()
+    );
+    return images
+      .filter((image) => {
+        const expiryDate = new Date(image.metadata.expiry);
+        return expiryDate >= today && expiryDate <= oneMonthLater;
+      })
+      .map((image) => image.metadata.title)
+      .join(", ");
+  };
+
   // const addCategory = () => {
   //   if (newCategory && !categories.includes(newCategory)) {
   //     setCategories([...categories, newCategory]);
@@ -249,6 +290,17 @@ const UploadImage = () => {
         />
       </div>
 
+      {images.length > 0 && (
+        <>
+          <p className="text-red-500">
+            Itens vencidos: {getExpiredItems() || "Nenhum"}
+          </p>
+          <p className="text-orange-500">
+            Itens a vencer: {getItemsAboutToExpire() || "Nenhum"}
+          </p>
+        </>
+      )}
+
       <div className="grid grid-cols-2 gap-4 w-full items-start justify-start mt-10">
         {filteredImages.map((image, index) => (
           <div
@@ -260,17 +312,20 @@ const UploadImage = () => {
               alt={`Uploaded at ${image.fullPath}`}
               className="rounded-md w-full"
             />
-            <p className="line-clamp-1">
-              <b>Titulo</b>: {image.metadata.title}
+            <p className="line-clamp-1">{image.metadata.title}</p>
+            <p
+              className={`${getExpiryClass(
+                image.metadata.expiry
+              )} line-clamp-1`}
+            >
+              <b>Validade</b>: {formatDate(image.metadata.expiry)}
             </p>
             {detailsVisibility[index] ? (
               <>
                 <p>
                   <b>Descrição</b>: {image.metadata.description}
                 </p>
-                <p>
-                  <b>Validade</b>: {formatDate(image.metadata.expiry)}
-                </p>
+
                 <p>
                   <b>Quantidade</b>: {image.metadata.quantity}
                 </p>
