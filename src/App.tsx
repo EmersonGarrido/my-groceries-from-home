@@ -8,7 +8,9 @@ import {
   listAll,
   deleteObject,
   getMetadata,
+  updateMetadata,
 } from "firebase/storage";
+
 import { storage } from "./firebase";
 
 const UploadImage = () => {
@@ -96,14 +98,27 @@ const UploadImage = () => {
     return `${day}/${month}/${year}`;
   };
 
-  const handleDelete = async (fullPath: string) => {
+  const handleDelete = async (fullPath: string, quantity: number) => {
     const confirmDelete = window.confirm(
       "Tem certeza que deseja remover este item?"
     );
     if (confirmDelete) {
       const refToDelete = ref(storage, fullPath);
-      await deleteObject(refToDelete);
-      await fetchImages();
+      if (quantity > 1) {
+        const newQuantity = quantity - 1;
+        const existingMetadata = await getMetadata(refToDelete);
+        const newMetadata: UploadMetadata = {
+          customMetadata: {
+            ...existingMetadata.customMetadata,
+            quantity: newQuantity.toString(),
+          },
+        };
+        await updateMetadata(refToDelete, newMetadata);
+        await fetchImages();
+      } else {
+        await deleteObject(refToDelete);
+        await fetchImages();
+      }
     }
   };
 
@@ -305,13 +320,16 @@ const UploadImage = () => {
         {filteredImages.map((image, index) => (
           <div
             key={index}
-            className="w-full bg-black/10 p-2 flex flex-col gap-3 items-center justify-center rounded-md"
+            className="w-full relative bg-black/10 p-2 flex flex-col gap-3 items-center justify-center rounded-md"
           >
             <img
               src={image.url}
               alt={`Uploaded at ${image.fullPath}`}
               className="rounded-md w-full"
             />
+            <div className="absolute bg-black rounded-full top-0 right-0 flex items-center justify-center w-8 h-8 text-white p-2">
+              {image.metadata.quantity}
+            </div>
             <p className="line-clamp-1">{image.metadata.title}</p>
             <p
               className={`${getExpiryClass(
@@ -327,9 +345,6 @@ const UploadImage = () => {
                 </p>
 
                 <p>
-                  <b>Quantidade</b>: {image.metadata.quantity}
-                </p>
-                <p>
                   <b>Categoria</b>: {image.metadata.category}
                 </p>
                 <button
@@ -340,7 +355,12 @@ const UploadImage = () => {
                 </button>
                 <button
                   className="bg-red-500 text-white w-full rounded-md py-2 px-4"
-                  onClick={() => handleDelete(image.fullPath)}
+                  onClick={() =>
+                    handleDelete(
+                      image.fullPath,
+                      Number(image.metadata.quantity)
+                    )
+                  }
                 >
                   Remover
                 </button>
