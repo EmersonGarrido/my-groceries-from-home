@@ -318,7 +318,7 @@ const UploadImage = () => {
                 image.metadata.expiry
               )} line-clamp-1`}
             >
-              <b>Validade</b>: {formatDate(image.metadata.expiry)}
+              {formatDate(image.metadata.expiry)}
             </p>
             {detailsVisibility[index] ? (
               <>
